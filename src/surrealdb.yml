@@ -1,0 +1,62 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: surrealv1
+  namespace: ${WAVE_NAMESPACE}
+  labels:
+    app: surrealv1
+spec:
+  selector:
+    matchLabels:
+      app: surrealv1
+  template:
+    metadata:
+      labels:
+        app: surrealv1
+    spec:
+      serviceAccountName: wave-sa
+      nodeSelector:
+        service: tower
+      securityContext:
+        runAsUser: 0
+        runAsGroup: 0
+      containers:
+        - image: "surrealdb/surrealdb:v1.1.1"
+          name: surrealv1
+          ports:
+            - containerPort: 8000
+          args:
+            - "start"
+            - "--no-banner"
+            - "--user"
+            - "root"
+            - "--pass"
+            - "${SURRELA_DB_PASSWORD}"
+            - "file:///mnt/efs/surreal-db"
+          volumeMounts:
+            - name: "vol-mnt-efs"
+              mountPath: "/mnt/efs"
+          resources:
+            requests:
+              memory: "2000Mi"
+      restartPolicy: Always
+      volumes:
+        - name: "vol-mnt-efs"
+          persistentVolumeClaim:
+            claimName: wave-app-fs
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: surrealv1
+  namespace: ${WAVE_NAMESPACE}
+spec:
+  ports:
+    - port: 8100
+      targetPort: 8000
+      protocol: TCP
+  type: NodePort
+  selector:
+    app: "surrealv1"
+...

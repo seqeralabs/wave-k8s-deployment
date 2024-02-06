@@ -1,0 +1,61 @@
+---
+# the app main namespace
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ${WAVE_NAMESPACE}
+  labels:
+    app: wave-app
+---
+# defines the storage class for the shared
+# file system used by wave app and build
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: efs-wave-sc
+provisioner: efs.csi.aws.com
+parameters:
+  provisioningMode: efs-ap
+---
+# create a persistent volume used by the wave app
+# to share the build dockerfile and context with the build pod
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: wave-app-pv
+spec:
+  capacity:
+    storage: 50Gi
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: efs-wave-sc
+  csi:
+    driver: efs.csi.aws.com
+    ## EFS storage should be provisioned manually
+    volumeHandle: ${AWS_EFS_VOLUME_HANDLE}
+---
+#  authorization for wave app
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: wave-role
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "pods/status", "pods/log", "pods/exec"]
+    verbs: ["get", "list", "watch", "create", "delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: wave-rolebind
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: wave-role
+subjects:
+  - kind: ServiceAccount
+    name: wave-sa
+    namespace: ${WAVE_NAMESPACE}
+...

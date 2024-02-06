@@ -1,0 +1,218 @@
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  namespace: ${WAVE_NAMESPACE}
+  name: wave-app-fs
+  labels:
+    app: wave-app
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 500Gi
+  storageClassName: efs-wave-sc
+---
+# the service account to grant permissions to the app
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  namespace: ${WAVE_NAMESPACE}
+  name: wave-sa
+  annotations:
+    eks.amazonaws.com/role-arn: "${AWS_IAM_ROLE}"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  namespace: ${WAVE_NAMESPACE}
+  name: wave-sa-secret
+  annotations:
+    kubernetes.io/service-account.name: wave-sa
+type: kubernetes.io/service-account-token
+---
+# the wave app main config settings
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: wave-cfg
+  namespace: ${WAVE_NAMESPACE}
+  labels:
+    app: wave-cfg
+data:
+  config.yml: |
+    wave:
+      debug: false
+      server:
+        url: "https://${WAVE_HOSTNAME}"
+      tokens:
+        cache:
+          duration: "36h"
+      build:
+        timeout: "15m"
+        workspace: "/efs/wave/build"
+        cleanup: "OnSuccess"
+        repo: "${WAVE_CONTAINER_BUILD_REPO}"
+        cache: "${WAVE_CONTAINER_CACHE_REPO}"
+        k8s:
+          namespace: "wave-build"
+          storage:
+            mountPath: "/efs/wave"
+            claimName: "wave-build-fs"
+          serviceAccount: "wave-build-sa"
+          resources:
+            requests:
+              memory: '3600Mi'
+          nodeSelector:
+            # this node selector binds the build pods to a separate cluster node group 
+            linux/amd64: 'service=wave-build'
+            linux/arm64: 'service=wave-build-arm64'
+        logs:
+          bucket: "${WAVE_LOGS_BUCKET}"
+          prefix: "build-logs"
+      scan:
+        enabled: true
+        severity: "MEDIUM,HIGH,CRITICAL"
+        k8s:
+          resources:
+            requests:
+             memory: '2000Mi'
+    redis:
+      uri: "redis://${WAVE_REDIS_HOSTNAME}"
+    surreal:
+      default:
+        url: "http://surrealv1:8100"
+        password: "${SURREAL_DB_PASSWORD}"
+    rate-limit:
+      build:
+        anonymous: 25/1d
+        authenticated: 100/1h
+      pull:
+        anonymous: 250/1h
+        authenticated: 1000/1m
+    mail:
+      from: "${WAVE_SENDER_EMAIL}"
+    tower:
+      endpoint:
+        url: "${TOWER_API_URL}"
+    micronaut:
+      executors:
+        stream-executor:
+          type: FIXED
+          number-of-threads: 16
+      netty:
+        event-loops:
+          default:
+            num-threads: 64
+          stream-pool:
+            executor: stream-executor
+      http:
+        services:
+          stream-client:
+            read-timeout: '30s'
+            read-idle-timeout: '5m'
+            event-loop-group: stream-pool
+    endpoints:
+      env:
+        enabled: false
+      bean:
+        enabled: false
+      caches:
+        enabled: false
+      refresh:
+        enabled: false
+      loggers:
+        enabled: false
+      info:
+        enabled: false
+      metrics:
+        enabled: true
+      health:
+        enabled: true
+        disk-space:
+          enabled: false
+        jdbc:
+          enabled: false
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wave
+  namespace: ${WAVE_NAMESPACE}
+  labels:
+    app: wave-app
+spec:
+  selector:
+    matchLabels:
+      app: wave-app
+  template:
+    metadata:
+      labels:
+        app: wave-app
+    spec:
+      serviceAccountName: wave-sa
+      nodeSelector:
+        kubernetes.io/arch: amd64
+      containers:
+        - image: 195996028523.dkr.ecr.eu-west-1.amazonaws.com/wave/app:1.2.1
+          name: wave-app
+          ports:
+            - containerPort: 9090
+          env:
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: MICRONAUT_ENVIRONMENTS
+              value: "mail,aws-ses,ec2,rate-limit,redis,surrealdb,buildlogs-aws"
+            - name: WAVE_JVM_OPTS
+              value: "-XX:ActiveProcessorCount=8 -XX:InitialRAMPercentage=50 -XX:MaxRAMPercentage=50 -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/efs/wave/dump/java-$(POD_NAME).hprof -XX:MaxDirectMemorySize=800m -Dio.netty.maxDirectMemory=0 -Djdk.httpclient.keepalive.timeout=10"
+          resources:
+            requests:
+              memory: "4000Mi"
+            limits:
+              memory: "4000Mi"
+          workingDir: "/work"
+          volumeMounts:
+            - name: "vol-build"
+              mountPath: "/efs/wave"
+            - name: wave-cfg
+              mountPath: /work/config.yml
+              subPath: "config.yml"
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 9090
+            initialDelaySeconds: 5
+            timeoutSeconds: 3
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 9090
+            initialDelaySeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 10
+      volumes:
+        - name: vol-build
+          persistentVolumeClaim:
+            claimName: wave-app-fs
+        - name: wave-cfg
+          configMap:
+            name: wave-cfg
+      restartPolicy: Always
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: wave
+  namespace: ${WAVE_NAMESPACE}
+spec:
+  ports:
+    - port: 80
+      targetPort: 9090
+      protocol: TCP
+  type: NodePort
+  selector:
+    app: "wave-app"
+...

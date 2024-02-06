@@ -1,0 +1,48 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: wave-build
+  labels:
+    app: wave-app
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: wave-build-pv
+spec:
+  capacity:
+    storage: 50Gi
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: efs-wave-sc
+  csi:
+    driver: efs.csi.aws.com
+    ## EFS storage should be provisioned manually
+    volumeHandle: ${AWS_EFS_VOLUME_HANDLE}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  namespace: wave-build
+  name: wave-build-fs
+  labels:
+    app: wave-app
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 500Gi
+  storageClassName: efs-wave-sc
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  namespace: wave-build
+  name: wave-build-sa
+  annotations:
+    eks.amazonaws.com/role-arn: "${AWS_IAM_ROLE}"
+...
