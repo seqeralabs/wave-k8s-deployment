@@ -83,13 +83,6 @@ data:
       default:
         url: "http://surrealv1:8100"
         password: "${SURREAL_DB_PASSWORD}"
-    rate-limit:
-      build:
-        anonymous: 25/1d
-        authenticated: 100/1h
-      pull:
-        anonymous: 250/1h
-        authenticated: 1000/1m
     mail:
       from: "${WAVE_SENDER_EMAIL}"
     tower:
@@ -164,7 +157,7 @@ spec:
                 fieldRef:
                   fieldPath: metadata.name
             - name: MICRONAUT_ENVIRONMENTS
-              value: "mail,aws-ses,ec2,rate-limit,redis,surrealdb,buildlogs-aws"
+              value: "mail,aws-ses,ec2,redis,surrealdb,buildlogs-aws"
             - name: WAVE_JVM_OPTS
               value: "-XX:ActiveProcessorCount=8 -XX:InitialRAMPercentage=50 -XX:MaxRAMPercentage=50 -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/efs/wave/dump/java-$(POD_NAME).hprof -XX:MaxDirectMemorySize=800m -Dio.netty.maxDirectMemory=0 -Djdk.httpclient.keepalive.timeout=10"
           resources:
