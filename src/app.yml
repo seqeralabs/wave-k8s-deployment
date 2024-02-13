@@ -67,7 +67,6 @@ data:
           nodeSelector:
             # this node selector binds the build pods to a separate cluster node group 
             linux/amd64: 'service=wave-build'
-            linux/arm64: 'service=wave-build-arm64'
         logs:
           bucket: "${WAVE_LOGS_BUCKET}"
           prefix: "build-logs"
