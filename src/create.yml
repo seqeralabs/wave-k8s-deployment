@@ -3,7 +3,7 @@
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: ${WAVE_NAMESPACE}
+  name: wave-deploy
   labels:
     app: wave-app
 ---
@@ -57,5 +57,5 @@ roleRef:
 subjects:
   - kind: ServiceAccount
     name: wave-sa
-    namespace: ${WAVE_NAMESPACE}
+    namespace: wave-deploy
 ...

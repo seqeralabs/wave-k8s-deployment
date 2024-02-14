@@ -3,7 +3,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: surrealv1
-  namespace: ${WAVE_NAMESPACE}
+  namespace: wave-deploy
   labels:
     app: surrealv1
 spec:
@@ -50,7 +50,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: surrealv1
-  namespace: ${WAVE_NAMESPACE}
+  namespace: wave-deploy
 spec:
   ports:
     - port: 8100

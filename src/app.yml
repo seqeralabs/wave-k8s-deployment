@@ -2,7 +2,7 @@
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  namespace: ${WAVE_NAMESPACE}
+  namespace: wave-deploy
   name: wave-app-fs
   labels:
     app: wave-app
@@ -18,7 +18,7 @@ spec:
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  namespace: ${WAVE_NAMESPACE}
+  namespace: wave-deploy
   name: wave-sa
   annotations:
     eks.amazonaws.com/role-arn: "${AWS_IAM_ROLE}"
@@ -26,7 +26,7 @@ metadata:
 apiVersion: v1
 kind: Secret
 metadata:
-  namespace: ${WAVE_NAMESPACE}
+  namespace: wave-deploy
   name: wave-sa-secret
   annotations:
     kubernetes.io/service-account.name: wave-sa
@@ -37,7 +37,7 @@ kind: ConfigMap
 apiVersion: v1
 metadata:
   name: wave-cfg
-  namespace: ${WAVE_NAMESPACE}
+  namespace: wave-deploy
   labels:
     app: wave-cfg
 data:
@@ -131,7 +131,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: wave
-  namespace: ${WAVE_NAMESPACE}
+  namespace: wave-deploy
   labels:
     app: wave-app
 spec:
@@ -143,6 +143,8 @@ spec:
       labels:
         app: wave-app
     spec:
+      imagePullSecrets:
+        - name: reg-creds
       serviceAccountName: wave-sa
       nodeSelector:
         kubernetes.io/arch: amd64
@@ -198,7 +200,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: wave
-  namespace: ${WAVE_NAMESPACE}
+  namespace: wave-deploy
 spec:
   ports:
     - port: 80

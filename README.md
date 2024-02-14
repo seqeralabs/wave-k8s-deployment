@@ -124,7 +124,8 @@ variable placeholders with the corresponding value matching your environment dep
 * `AWS_EFS_VOLUME_HANDLE`: The AWS EFS shared file system instance ID e.g. `fs-12345667890`
 * `AWS_CERTIFICATE_ARN`: The arn of the AWS Certificate created during the environment preparation e.g. `arn:aws:acm:<YOUR REGION>:<YOUR ACCOUNT>:certificate/<YOUR CERTIFICATE ID>`
 * `AWS_IAM_ROLE`: The arn of the AWS IAM role granting permissions to AWS resources to the Wave service.
-
+* `SEQERA_CR_USER`: The username to access the Seqera container registry to providing the images for installing Wave service
+* `SEQERA_CR_PASSWORD`: The password to access the Seqera container registry to providing the images for installing Wave service
 
 ### Application deployment
 
@@ -136,22 +137,34 @@ corresponding values, proceed with the application deployment following those st
 
     ```
     kubectl -f create.yml
+    kubectl config set-context --current --namespace=wave-deploy
     ```
 
-2. Create build storage and namespace
+2. Setup the Container registry credentials to access the Wave container image
+
+    ```
+    kubectl create secret \
+      docker-registry reg-creds \
+      --namespace wave-deploy \
+      --docker-server=cr.seqera.io \
+      --docker-username="$SEQERA_CR_USER" \
+      --docker-password="$SEQERA_CR_PASSWORD"
+    ```
+
+3. Create build storage and namespace
 
     ```
     kubectl -f build.yml
     ```
 
 
-3. Deploy the main application resources:
+4. Deploy the main application resources:
 
     ```
     kubectl -f app.yml
     ```
 
-4. Deploy the Ingress controller:
+5. Deploy the Ingress controller:
 
     ```
     kubectl -f ingress.yml
