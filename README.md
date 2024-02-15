@@ -117,13 +117,14 @@ variable placeholders with the corresponding value matching your environment dep
 * `WAVE_HOSTNAME`: The host name to use to access the Wave service e.g. `wave.your-company.com`. This should match the host name used when creating the HTTPS certificate by using AWS Certificate manager.
 * `WAVE_CONTAINER_BUILD_REPO`: The ECR repository name used to host the containers built by Wave e.g. `<YOUR ACCOUNT>.dkr.ecr.<YOUR REGION>.amazonaws.com/wave/build`.
 * `WAVE_CONTAINER_CACHE_REPO`: The ECR repository name used to cache the containers built by Wave e.g. `<YOUR ACCOUNT>.dkr.ecr.<YOUR REGION>.amazonaws.com/wave/cache`.
-* `WAVE_LOGS_BUCKETS`: The AWS S3 bucket used to store the Wave logs e.g. `wave-logs-prod`.
+* `WAVE_LOGS_BUCKET`: The AWS S3 bucket used to store the Wave logs e.g. `wave-logs-prod`.
 * `WAVE_REDIS_HOSTNAME`: The AWS Elasticache instance hostname and port e.g. `<YOUR ELASTICACHE INSTANCE>.cache.amazonaws.com:6379`.
 * `WAVE_SENDER_EMAIL`: The email address that will be used by Wave to send email e.g. `wave-app@your-company.com`. Note: it must an email address validated in your AWS SES setup.
 * `TOWER_API_URL`: The API URL of your Seqera Platform installation e.g. `<https://your-platform-hostname.com>/api`.
 * `AWS_EFS_VOLUME_HANDLE`: The AWS EFS shared file system instance ID e.g. `fs-12345667890`
 * `AWS_CERTIFICATE_ARN`: The arn of the AWS Certificate created during the environment preparation e.g. `arn:aws:acm:<YOUR REGION>:<YOUR ACCOUNT>:certificate/<YOUR CERTIFICATE ID>`
 * `AWS_IAM_ROLE`: The arn of the AWS IAM role granting permissions to AWS resources to the Wave service.
+* `SURREAL_DB_PASSWORD`: User defined password to be used for embedded Surreal DB deployed by Wave.
 * `SEQERA_CR_USER`: The username to access the Seqera container registry to providing the images for installing Wave service
 * `SEQERA_CR_PASSWORD`: The password to access the Seqera container registry to providing the images for installing Wave service
 
@@ -136,32 +137,40 @@ corresponding values, proceed with the application deployment following those st
 1. Create storage, app namespace and roles:
 
     ```
-    kubectl -f create.yml
+    kubectl apply -f src/create.yml
     kubectl config set-context --current --namespace=wave-deploy
     ```
 
-2. Setup the Container registry credentials to access the Wave container image
+2. Setup the Container registry credentials to access the Wave container image:
 
     ```
     kubectl create secret \
       docker-registry reg-creds \
       --namespace wave-deploy \
       --docker-server=cr.seqera.io \
-      --docker-username="$SEQERA_CR_USER" \
-      --docker-password="$SEQERA_CR_PASSWORD"
+      --docker-username='<SEQERA_CR_USER>' \
+      --docker-password='<SEQERA_CR_PASSWORD>'
     ```
+
+Replace the placeholders `<SEQERA_CR_USER>` and `<SEQERA_CR_PASSWORD>` with your Seqera registry credentials.
+Make sure to include the username and password in between single quote `'`.
 
 3. Create build storage and namespace
 
     ```
-    kubectl -f build.yml
+    kubectl apply -f src/build.yml
     ```
 
+4. Deploy Surreal DB
+
+    ```
+    kubectl apply -f src/surrealdb.yml
+    ```
 
 4. Deploy the main application resources:
 
     ```
-    kubectl -f app.yml
+    kubectl apply -f src/app.yml
     ```
 
 5. Deploy the Ingress controller:
