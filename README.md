@@ -111,8 +111,8 @@ with the corresponding resources created in the previous step
 
 ### Kubernetes manifests preparation
 
-Replace in the Kubernetes manifests included in this repository the following
-variable placeholders with the corresponding value matching your environment deployment:
+Update the variables in the file `settings.sh` with the values corresponding your AWS infrastructure
+created in the previous step. The following settings are required:
 
 * `WAVE_HOSTNAME`: The host name to use to access the Wave service e.g. `wave.your-company.com`. This should match the host name used when creating the HTTPS certificate by using AWS Certificate manager.
 * `WAVE_CONTAINER_BUILD_REPO`: The ECR repository name used to host the containers built by Wave e.g. `<YOUR ACCOUNT>.dkr.ecr.<YOUR REGION>.amazonaws.com/wave/build`.
@@ -137,7 +137,7 @@ corresponding values, proceed with the application deployment following those st
 1. Create storage, app namespace and roles:
 
     ```
-    kubectl apply -f src/create.yml
+    kubectl apply -f <(cat src/create.yml | envsubst)
     kubectl config set-context --current --namespace=wave-deploy
     ```
 
@@ -158,25 +158,25 @@ Make sure to include the username and password in between single quote `'`.
 3. Create build storage and namespace
 
     ```
-    kubectl apply -f src/build.yml
+    kubectl apply -f <(cat src/build.yml | envsubst)
     ```
 
 4. Deploy Surreal DB
 
     ```
-    kubectl apply -f src/surrealdb.yml
+    kubectl apply -f <(cat src/surrealdb.yml | envsubst)
     ```
 
 4. Deploy the main application resources:
 
     ```
-    kubectl apply -f src/app.yml
+    kubectl apply -f <(cat src/app.yml | envsubst)
     ```
 
 5. Deploy the Ingress controller:
 
     ```
-    kubectl -f ingress.yml
+    kubectl -f <(cat src/ingress.yml | envsubst)
     ```
 
 The ingress controller will create automatically an AWS application load balancer to serve the Wave
