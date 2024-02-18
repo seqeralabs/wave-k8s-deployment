@@ -7,8 +7,10 @@ Build and augment container images for Nextflow workflows.
 ## Requirements
 
 * AWS EKS cluster
+* AWS OpenID Connect (OIDC) provider for EKS
 * AWS S3 bucket for logs
 * AWS EFS for shared files
+* AWS EFS CSI driver for EKS
 * AWS Application Load Balancer
 * AWS Certificate Manager
 * AWS SES (simple email service)
@@ -20,92 +22,90 @@ Build and augment container images for Nextflow workflows.
 
 * Create a EKS cluster instance following the [AWS documentation](https://docs.aws.amazon.com/eks/latest/userguide/create-cluster.html). When the cluster is ready create a new Kubernetes namespace where the Wave service is going to be deployed e.g. `wave-production`.
 * Create an AWS S3 bucket in the same region where the EKS cluster is running. The bucket will host Wave logs, e.g. `wave-logs-prod`.
-* Create an EFS file system instance as described in the [AWS documentation](https://docs.aws.amazon.com/efs/latest/ug/gs-step-two-create-efs-resources.html). Make sure to use the same VPC used for the EKS cluster.
-* The AWS SES service is required by Wave to send email notification. Make sure to have configured a AWS SES service for production usage. See the [AWS documentation](https://docs.aws.amazon.com/ses/latest/dg/request-production-access.html) for further details.
+* Create an EFS file system instance as described in the [AWS documentation](https://docs.aws.amazon.com/efs/latest/ug/gs-step-two-create-efs-resources.html). Make sure to use the same VPC used for the EKS cluster and [EFS CSI driver](https://docs.aws.amazon.com/eks/latest/userguide/efs-csi.html) for EKS.
+  Also make sure Your EFS file system's security group must have an inbound and outbound rule that allows NFS traffic from the CIDR for your cluster's VPC.Allow port 2049 for inbound and outbound traffic.
 * Create AWS Certificate to allow HTTPS traffic to your Wave service by using the AWS Certificate Manager. The certificate should be in the same region where the EKS cluster is running. See the [AWS documentation](https://docs.aws.amazon.com/acm/latest/userguide/gs-acm-request-public.html) for further details.
-* Create two container repositories in the same region where the container is deployed. The first repository is used to host the container images built by Wave and the second one will be used for caching purposes.
-* Create an AWS Elasticache instance used by Wave for caching purposes. For production deployment it's adviced the used of instance type `cache.t3.medium` and using Redis 6.2.x engine version or later. Make sure to use the same VPC used for the EKS cluster.
+* Create two container repositories in the same region where the container is deployed. The first repository is used to host the container images built by Wave and the second one will be used for caching purposes. Make sure to create two repository have the same name prefix e.g. `wave/build` and `wave/cache`.
+* Create an AWS Elasticache instance used by Wave for caching purposes. It's required the use of a single-node cluster. For production deployment it's adviced the used of instance type `cache.t3.medium` and using Redis 6.2.x engine version or later (serverless is not supported). Make sure to use the same VPC used for the EKS cluster.
+* The AWS SES service is required by Wave to send email notification. Make sure to have configured a AWS SES service for production usage. See the [AWS documentation](https://docs.aws.amazon.com/ses/latest/dg/request-production-access.html) for further details.
 
 ## AWS policy & role creation
 
-Create an AWS IAM policy that will grant access to the AWS infrastructure to the Wave application.
-The policy requires the permissions listed below:
+Create an AWS IAM policy that will grant access to the AWS infrastructure to the Wave application. This requires
+your cluster to have an existing AWS Identity and Access Management (IAM) OpenID Connect (OIDC) provider for your
+EKS cluster. To determine whether you already have one, or to create one, see
+[Creating an IAM OIDC provider for your cluster](https://docs.aws.amazon.com/eks/latest/userguide/enable-iam-roles-for-service-accounts.html).
+
+1. Make sure the file `settings.sh` have a valid value for the following settings:
+
+    * `AWS_REGION`: The AWS region where your cluster is deployed e.g. `eu-central-1`.
+    * `AWS_ACCOUNT`: The ID of the AWS account where the cluster is deployed.
+    * `WAVE_CONFIG_NAME`: The name for this Wave deployment e.g. `seqera-wave`.
+    * `WAVE_LOGS_BUCKET`: The S3 bucket for storing Wave logs, created in the previous step.
+    * `WAVE_CONTAINER_NAME_PREFIX`: The name prefix given the build cache ECR repository e.g. `wave`
+    * `AWS_EKS_CLUSTER_NAME`: The name of the cluster name where the service is going to be deployed.
+    * `$WAVE_NAMESPACE`: The Kubernetes namespace where the Wave service is going to be deployed e.g. `wave-test`.
+    * `WAVE_BUILD_NAMESPACE`: The Kubernetes namespace where container build jobs will be executed e.g. `wave-build`.
 
 
-```
-{
-    "Statement": [
-        {
-            "Action": [
-                "ecr:BatchCheckLayerAvailability",
-                "ecr:GetDownloadUrlForLayer",
-                "ecr:GetRepositoryPolicy",
-                "ecr:DescribeRepositories",
-                "ecr:ListImages",
-                "ecr:DescribeImages",
-                "ecr:BatchGetImage",
-                "ecr:GetLifecyclePolicy",
-                "ecr:GetLifecyclePolicyPreview",
-                "ecr:ListTagsForResource",
-                "ecr:DescribeImageScanFindings",
-                "ecr:CompleteLayerUpload",
-                "ecr:UploadLayerPart",
-                "ecr:InitiateLayerUpload",
-                "ecr:PutImage"
-            ],
-            "Effect": "Allow",
-            "Resource": [
-                "arn:aws:ecr:<YOUR REGION>:<YOUR ACCOUNT>:repository/wave/*"
-            ]
-        },
-        {
-            "Action": "ecr:GetAuthorizationToken",
-            "Effect": "Allow",
-            "Resource": "*"
-        },
-        {
-            "Action": [
-                "ssm:DescribeParameters"
-            ],
-            "Effect": "Allow",
-            "Resource": "*"
-        },
-        {
-            "Action": "s3:ListBucket",
-            "Effect": "Allow",
-            "Resource": [
-                "arn:aws:s3:::<YOUR WAVE BUCKERT>"
-            ]
-        },
-        {
-            "Action": [
-                "s3:PutObject",
-                "s3:GetObject",
-                "s3:DeleteObject"
-            ],
-            "Effect": "Allow",
-            "Resource": [
-                "arn:aws:s3:::<YOUR WAVE BUCKET>/*"
-            ]
-        },
-        {
-            "Action": [
-                "ssm:GetParameters",
-                "ssm:GetParametersByPath"
-            ],
-            "Effect": "Allow",
-            "Resource": [
-                "arn:aws:ssm:<YOUR REGION>:<YOUR ACCOUNT>:parameter/config/wave-*",
-                "arn:aws:ssm:<YOUR REGION>:<YOUR ACCOUNT>:parameter/config/application*"
-            ]
-        }
-    ],
-    "Version": "2012-10-17"
-}
-```
+1. Create the IAM policy using the template included in this repo with name `seqera-wave-policy.json` and using
+the command below:
 
-In the above policy replace the placeholders `<YOUR REGION>`,`<YOUR ACCOUNT>` and `<YOUR WAVE BUCKET>`
-with the corresponding resources created in the previous step
+    ```bash
+    source settings.sh
+    aws \
+      --region $AWS_REGION \
+      iam create-policy \
+      --policy-name $WAVE_CONFIG_NAME \
+      --policy-document file://<( cat policies/seqera-wave-policy.json | envsubst )
+    ```
+
+Take note of the policy Arn show in the command result.
+
+Find your cluster's OIDC provider URL using the command below:
+
+    ```bash
+    aws \
+      --region $AWS_REGION \
+      eks describe-cluster \
+      --name $AWS_EKS_CLUSTER_NAME \
+      --query "cluster.identity.oidc.issuer" \
+      --output text
+    ```
+
+An example output is as follows.
+
+    ```
+    https://oidc.eks.region-code.amazonaws.com/id/EXAMPLED539D4633E53DE1B71EXAMPLE
+    ```
+
+Set the variable `AWS_EKS_OIDC_ID` in the `settings.sh` using the id value from your result. Then run
+the command below:
+
+    ```
+    source settings.sh
+    aws \
+      --region $AWS_REGION \
+      iam create-role \
+      --role-name $WAVE_CONFIG_NAME \
+      --assume-role-policy-document file://<( cat policies/seqera-wave-role.json | envsubst )
+    ```
+
+
+Take note of the Arn of the IAM role created and use it as value for the variable `AWS_IAM_ROLE`
+in the `settings.sh` file.
+
+Finally attach to the role the policy created in the previous step, using the command below:
+
+    ```bash
+    source settings.sh
+    aws \
+      --region $AWS_REGION \
+      iam attach-role-policy \
+      --role-name $WAVE_CONFIG_NAME \
+      --policy-arn arn:aws:iam::$AWS_ACCOUNT:policy/$WAVE_CONFIG_NAME
+    ```
+
 
 ## Deployment
 
@@ -197,7 +197,7 @@ See also [AWS documentation](https://docs.aws.amazon.com/Route53/latest/Develope
 
 Once the DNS is configured verify the Wave API is accessible using this command:
 
-    ```
+    ```bash
     curl https://${WAVE_HOSTNAME}/service-info | jq
     ```
 
@@ -228,7 +228,7 @@ Then download the [Wave CLI](https://github.com/seqeralabs/wave-cli) tool, and u
 using the command below:
 
     ```bash
-    ./wave \
+    wave \
       --wave-endpoint https://$WAVE_HOSTNAME \
       --tower-endpoint $TOWER_API_URL \
       --image alpine:latest
@@ -242,7 +242,7 @@ To verify Wave build is working as expected run this command:
 
 
     ```bash
-    ./wave \
+    wave \
       --wave-endpoint https://$WAVE_HOSTNAME \
       --tower-endpoint $TOWER_API_URL \
       --conda-package cowpy
