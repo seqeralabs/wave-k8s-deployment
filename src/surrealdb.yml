@@ -3,7 +3,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: surrealv1
-  namespace: wave-deploy
+  namespace: "${WAVE_NAMESPACE}"
   labels:
     app: surrealv1
 spec:
@@ -32,7 +32,7 @@ spec:
             - "--user"
             - "root"
             - "--pass"
-            - "${SURRELA_DB_PASSWORD}"
+            - "${SURREAL_DB_PASSWORD}"
             - "file:///mnt/efs/surreal-db"
           volumeMounts:
             - name: "vol-mnt-efs"
@@ -50,7 +50,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: surrealv1
-  namespace: wave-deploy
+  namespace: "${WAVE_NAMESPACE}"
 spec:
   ports:
     - port: 8100

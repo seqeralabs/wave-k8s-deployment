@@ -2,7 +2,7 @@ apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
   name: wave-hpa
-  namespace: wave-deploy
+  namespace: "${WAVE_NAMESPACE}"
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
