@@ -1,0 +1,21 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "Federated": "arn:aws:iam::$AWS_ACCOUNT:oidc-provider/oidc.eks.$AWS_REGION.amazonaws.com/id/$AWS_EKS_OIDC_ID"
+      },
+      "Action": "sts:AssumeRoleWithWebIdentity",
+      "Condition": {
+        "StringEquals": {
+          "oidc.eks.$AWS_REGION.amazonaws.com/id/$AWS_EKS_OIDC_ID:aud": "sts.amazonaws.com",
+          "oidc.eks.$AWS_REGION.amazonaws.com/id/$AWS_EKS_OIDC_ID:sub": [
+            "system:serviceaccount:$WAVE_NAMESPACE:wave-sa",
+            "system:serviceaccount:$WAVE_BUILD_NAMESPACE:wave-build-sa"
+          ]
+        }
+      }
+    }
+  ]
+}

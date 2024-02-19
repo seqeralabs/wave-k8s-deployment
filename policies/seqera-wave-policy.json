@@ -1,0 +1,66 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Action": [
+        "ecr:GetAuthorizationToken",
+        "ssm:DescribeParameters",
+        "ses:SendRawEmail"
+      ],
+      "Effect": "Allow",
+      "Resource": "*"
+    },
+    {
+      "Action": [
+        "ecr:BatchCheckLayerAvailability",
+        "ecr:GetDownloadUrlForLayer",
+        "ecr:GetRepositoryPolicy",
+        "ecr:DescribeRepositories",
+        "ecr:ListImages",
+        "ecr:DescribeImages",
+        "ecr:BatchGetImage",
+        "ecr:GetLifecyclePolicy",
+        "ecr:GetLifecyclePolicyPreview",
+        "ecr:ListTagsForResource",
+        "ecr:DescribeImageScanFindings",
+        "ecr:CompleteLayerUpload",
+        "ecr:UploadLayerPart",
+        "ecr:InitiateLayerUpload",
+        "ecr:PutImage"
+      ],
+      "Effect": "Allow",
+      "Resource": [
+        "arn:aws:ecr:$AWS_REGION:$AWS_ACCOUNT:repository/$WAVE_CONTAINER_NAME_PREFIX/*"
+      ]
+    },
+    {
+      "Action": "s3:ListBucket",
+      "Effect": "Allow",
+      "Resource": [
+        "arn:aws:s3:::$WAVE_LOGS_BUCKET"
+      ]
+    },
+    {
+      "Action": [
+        "s3:PutObject",
+        "s3:GetObject",
+        "s3:DeleteObject"
+      ],
+      "Effect": "Allow",
+      "Resource": [
+        "arn:aws:s3:::$WAVE_LOGS_BUCKET/*"
+      ]
+    },
+    {
+      "Action": [
+        "ssm:GetParameters",
+        "ssm:GetParametersByPath"
+      ],
+      "Effect": "Allow",
+      "Resource": [
+        "arn:aws:ssm:$AWS_REGION:$AWS_ACCOUNT:parameter/config/wave-*",
+        "arn:aws:ssm:$AWS_REGION:$AWS_ACCOUNT:parameter/config/application*"
+      ]
+    }
+  ]
+}
