@@ -51,45 +51,45 @@ EKS cluster. To determine whether you already have one, or to create one, see
 1. Create the IAM policy using the template included in this repo with name `seqera-wave-policy.json` and using
 the command below:
 
-    ```bash
-    source settings.sh
-    aws \
-      --region $AWS_REGION \
-      iam create-policy \
-      --policy-name $WAVE_CONFIG_NAME \
-      --policy-document file://<( cat policies/seqera-wave-policy.json | envsubst )
-    ```
+   ```bash
+   source settings.sh
+   aws \
+     --region $AWS_REGION \
+     iam create-policy \
+     --policy-name $WAVE_CONFIG_NAME \
+     --policy-document file://<( cat policies/seqera-wave-policy.json | envsubst )
+   ```
 
 Take note of the policy Arn show in the command result.
 
 Find your cluster's OIDC provider URL using the command below:
 
-    ```bash
-    aws \
-      --region $AWS_REGION \
-      eks describe-cluster \
-      --name $AWS_EKS_CLUSTER_NAME \
-      --query "cluster.identity.oidc.issuer" \
-      --output text
-    ```
+   ```bash
+   aws \
+     --region $AWS_REGION \
+     eks describe-cluster \
+     --name $AWS_EKS_CLUSTER_NAME \
+     --query "cluster.identity.oidc.issuer" \
+     --output text
+   ```
 
 An example output is as follows.
 
-    ```
-    https://oidc.eks.region-code.amazonaws.com/id/EXAMPLED539D4633E53DE1B71EXAMPLE
-    ```
+  ```
+  https://oidc.eks.region-code.amazonaws.com/id/EXAMPLED539D4633E53DE1B71EXAMPLE
+  ```
 
 Set the variable `AWS_EKS_OIDC_ID` in the `settings.sh` using the id value from your result. Then run
 the command below:
 
-    ```
-    source settings.sh
-    aws \
-      --region $AWS_REGION \
-      iam create-role \
-      --role-name $WAVE_CONFIG_NAME \
-      --assume-role-policy-document file://<( cat policies/seqera-wave-role.json | envsubst )
-    ```
+  ```
+  source settings.sh
+  aws \
+    --region $AWS_REGION \
+    iam create-role \
+    --role-name $WAVE_CONFIG_NAME \
+    --assume-role-policy-document file://<( cat policies/seqera-wave-role.json | envsubst )
+  ```
 
 
 Take note of the Arn of the IAM role created and use it as value for the variable `AWS_IAM_ROLE`
@@ -97,14 +97,14 @@ in the `settings.sh` file.
 
 Finally attach to the role the policy created in the previous step, using the command below:
 
-    ```bash
-    source settings.sh
-    aws \
-      --region $AWS_REGION \
-      iam attach-role-policy \
-      --role-name $WAVE_CONFIG_NAME \
-      --policy-arn arn:aws:iam::$AWS_ACCOUNT:policy/$WAVE_CONFIG_NAME
-    ```
+  ```bash
+  source settings.sh
+  aws \
+    --region $AWS_REGION \
+    iam attach-role-policy \
+    --role-name $WAVE_CONFIG_NAME \
+    --policy-arn arn:aws:iam::$AWS_ACCOUNT:policy/$WAVE_CONFIG_NAME
+  ```
 
 
 ## Deployment
@@ -141,53 +141,53 @@ corresponding values, proceed with the application deployment following those st
 
 1. Create storage, app namespace and roles:
 
-    ```bash
-    kubectl apply -f <(cat src/create.yml | envsubst)
-    kubectl config set-context --current --namespace=${WAVE_NAMESPACE}
-    ```
+   ```bash
+   kubectl apply -f <(cat src/create.yml | envsubst)
+   kubectl config set-context --current --namespace=${WAVE_NAMESPACE}
+   ```
 
 2. Setup the Container registry credentials to access the Wave container image:
 
-    ```bash
-    kubectl create secret \
+   ```bash
+   kubectl create secret \
       docker-registry seqera-reg-creds \
       --namespace "${WAVE_NAMESPACE}" \
       --docker-server=cr.seqera.io \
       --docker-username="${SEQERA_CR_USER}" \
       --docker-password="${SEQERA_CR_PASSWORD}"
-    ```
+   ```
 
 3. Create build storage and namespace
 
-    ```bash
-    kubectl apply -f <(cat src/build.yml | envsubst)
-    ```
+   ```bash
+   kubectl apply -f <(cat src/build.yml | envsubst)
+   ```
 
 4. Deploy Surreal DB
 
-    ```bash
-    kubectl apply -f <(cat src/surrealdb.yml | envsubst)
-    ```
+   ```bash
+   kubectl apply -f <(cat src/surrealdb.yml | envsubst)
+   ```
 
 5. Deploy the main application resources:
 
-    ```bash
-    kubectl apply -f <(cat src/app.yml | envsubst)
-    ```
+   ```bash
+   kubectl apply -f <(cat src/app.yml | envsubst)
+   ```
 
 6. Deploy the Ingress controller:
 
-    ```bash
-    kubectl apply -f <(cat src/ingress.yml | envsubst)
-    ```
+   ```bash
+   kubectl apply -f <(cat src/ingress.yml | envsubst)
+   ```
 
 The ingress controller will create automatically an AWS application load balancer to serve the Wave
 service traffic. The Load balancer address can be retrieved using the following command:
 
 
-    ```bash
-    kubectl get ingress wave-ingress -o jsonpath='{.status.loadBalancer.ingress[0].hostname}'
-    ```
+  ```bash
+  kubectl get ingress wave-ingress -o jsonpath='{.status.loadBalancer.ingress[0].hostname}'
+  ```
 
 
 Having the load balancer hostname, configure a *alias* record in your Route53 DNS so that the Wave service
@@ -197,9 +197,9 @@ See also [AWS documentation](https://docs.aws.amazon.com/Route53/latest/Develope
 
 Once the DNS is configured verify the Wave API is accessible using this command:
 
-    ```bash
-    curl https://${WAVE_HOSTNAME}/service-info | jq
-    ```
+  ```bash
+  curl https://${WAVE_HOSTNAME}/service-info | jq
+  ```
 
 7. Pair Seqera Platform with Wave
 
@@ -214,25 +214,25 @@ replacing replacing the Wave endpoint `https://wave.seqera.io` with the one defi
 
 Check the Wave pod logs. There should not be any error and it should be reported the line
 
-    ```
-    Opening pairing session - endpoint: <YOUR SEQERA PLATFORM URL>
-    ```
+  ```
+  Opening pairing session - endpoint: <YOUR SEQERA PLATFORM URL>
+  ```
 
 Sign in the Seqera Platform and create a Personal access token, and export the token value as shown below:
 
-    ```bash
-    export TOWER_ACCESS_TOKEN=<TOKEN VALUE>
-    ```
+  ```bash
+  export TOWER_ACCESS_TOKEN=<TOKEN VALUE>
+  ```
 
 Then download the [Wave CLI](https://github.com/seqeralabs/wave-cli) tool, and use it request a Wave container
 using the command below:
 
-    ```bash
-    wave \
+  ```bash
+  wave \
       --wave-endpoint https://$WAVE_HOSTNAME \
       --tower-endpoint $TOWER_API_URL \
       --image alpine:latest
-    ```
+  ```
 
 It will show the Wave container name for the request alpine image. You should be able to pull the container using
 a simple `docker pull <wave container>` command.
@@ -241,12 +241,12 @@ a simple `docker pull <wave container>` command.
 To verify Wave build is working as expected run this command:
 
 
-    ```bash
-    wave \
+  ```bash
+  wave \
       --wave-endpoint https://$WAVE_HOSTNAME \
       --tower-endpoint $TOWER_API_URL \
       --conda-package cowpy
-    ```
+  ```
 
 You should receive an email notification when the Wave build process completes and container
 is ready to be pulled.
