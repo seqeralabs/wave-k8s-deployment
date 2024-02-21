@@ -44,7 +44,7 @@ EKS cluster. To determine whether you already have one, or to create one, see
     * `WAVE_LOGS_BUCKET`: The S3 bucket for storing Wave logs, created in the previous step.
     * `WAVE_CONTAINER_NAME_PREFIX`: The name prefix given the build cache ECR repository e.g. `wave`
     * `AWS_EKS_CLUSTER_NAME`: The name of the cluster name where the service is going to be deployed.
-    * `$WAVE_NAMESPACE`: The Kubernetes namespace where the Wave service is going to be deployed e.g. `wave-test`.
+    * `WAVE_NAMESPACE`: The Kubernetes namespace where the Wave service is going to be deployed e.g. `wave-test`.
     * `WAVE_BUILD_NAMESPACE`: The Kubernetes namespace where container build jobs will be executed e.g. `wave-build`.
 
 
@@ -250,3 +250,9 @@ To verify Wave build is working as expected run this command:
 
 You should receive an email notification when the Wave build process completes and container
 is ready to be pulled.
+
+
+### Notes
+
+* Suggested instance type for Wave backend `m5a.2xlarge`
+* This deployment does not support the build of ARM (Graviton) CPU architecture containers.
