@@ -42,9 +42,9 @@ kind: ClusterRole
 metadata:
   name: wave-role
 rules:
-  - apiGroups: [""]
-    resources: ["pods", "pods/status", "pods/log", "pods/exec"]
-    verbs: ["get", "list", "watch", "create", "delete"]
+  - apiGroups: [ "","batch" ]
+    resources: [ "pods", "pods/status", "pods/log", "pods/exec", "jobs", "jobs/status" ]
+    verbs: [ "get", "list", "watch", "create", "delete" ]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
