@@ -22,7 +22,7 @@ spec:
         runAsUser: 0
         runAsGroup: 0
       containers:
-        - image: "surrealdb/surrealdb:v1.1.1"
+        - image: "surrealdb/surrealdb:v1.5.4"
           name: surrealv1
           ports:
             - containerPort: 8000
