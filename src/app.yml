@@ -14,15 +14,6 @@ spec:
       storage: 500Gi
   storageClassName: efs-wave-sc
 ---
-# the service account to grant permissions to the app
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  namespace: "${WAVE_NAMESPACE}"
-  name: wave-sa
-  annotations:
-    eks.amazonaws.com/role-arn: "${AWS_IAM_ROLE}"
----
 apiVersion: v1
 kind: Secret
 metadata:
