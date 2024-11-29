@@ -46,6 +46,15 @@ rules:
     resources: [ "pods", "pods/status", "pods/log", "pods/exec", "jobs", "jobs/status" ]
     verbs: [ "get", "list", "watch", "create", "delete" ]
 ---
+# the service account to grant permissions to the app
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  namespace: "${WAVE_NAMESPACE}"
+  name: wave-sa
+  annotations:
+    eks.amazonaws.com/role-arn: "${AWS_IAM_ROLE}"
+---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
