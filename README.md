@@ -1,5 +1,9 @@
 # Wave container registry 
 
+> [!IMPORTANT]  
+> This deployment guidance is no longer maintained.
+> Installation guidance has been moved to the [Public Wave documentation](https://docs.seqera.io/wave).
+
 ## Summary 
 
 Build and augment container images for Nextflow workflows.
